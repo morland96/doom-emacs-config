@@ -86,7 +86,22 @@
 
 ;; -- UI --
 (setq default-frame-alist '((fullscreen . maximized)))
-(vertico-posframe-mode 1)
+(setq vertico-multiform-commands
+      '((consult-line
+         posframe
+         (vertico-posframe-poshandler . posframe-poshandler-frame-top-center)
+         (vertico-posframe-border-width . 10)
+         ;; NOTE: This is useful when emacs is used in both in X and
+         ;; terminal, for posframe do not work well in terminal, so
+         ;; vertico-buffer-mode will be used as fallback at the
+         ;; moment.
+         (vertico-posframe-fallback-mode . vertico-buffer-mode))
+        (t posframe)))
+(vertico-multiform-mode 1)
+(setq vertico-multiform-commands
+      '((consult-lsp-symbols (:not posframe))
+        (consult-lsp-diagnostics (:not posframe))
+        (t posframe)))
 ;;(helm-posframe-enable)
 
 (with-eval-after-load 'doom-themes
@@ -95,8 +110,14 @@
 
 ;; -- TABS --
 (after! centaur-tabs
-  (setq centaur-tabs-style "wave")
-  (setq centaur-tabs-set-bar 'under)
+  (setq centaur-tabs-set-bar 'over
+        centaur-tabs-height 32
+        )
+  (centaur-tabs-headline-match)
+                                        ; (setq centaur-tabs-style "bar"
+                                        ; centaur-tabs-height 48
+                                        ; centaur-tabs-set-bar 'under)
+  (centaur-tabs-change-fonts "Lucidia Grade" 148)
   (+popup-window-p)
   (centaur-tabs-group-by-projectile-project))
 (defun centaur-tabs-hide-tab (x)
@@ -130,15 +151,28 @@
 
 ;; -- Projects --
 (after! projectile
+  (treemacs-project-follow-mode)
   (setq projectile-project-root-files-bottom-up '("package.json" ".projectile" ".project" ".git")
         projectile-ignored-projects '("~/.emacs.d/")
         projectile-project-search-path '("~/projects" "~/playground")))
+
+;; -- LSP --
+(setq lsp-ui-doc-enable t)
+(setq lsp-ui-doc-position 'top)
+(setq lsp-ui-doc-delay 0.2)
+(setq lsp-ui-doc-include-signature nil)
+(setq lsp-ui-doc-show-with-cursor nil)
+(setq lsp-ui-doc-show-with-mouse t)
+(setq lsp-ui-doc-max-height 20)
+(setq lsp-lens-enable t)
+(setq lsp-ui-sideline-enable t)
+(setq lsp-ui-sideline-show-code-actions t)
 
 ;; -- FRINGE --
 ;; (add-hook! 'doom-init-ui-hook (fringe-mode nil))
 ;; ;;(setq left-fringe-width 32)
 ;; (add-hook! +dap-running-session-mode
-  ;; (set-window-buffer nil (current-buffer)))
+;; (set-window-buffer nil (current-buffer)))
 ;; (set-fringe-style (quote (20 . 10)))
 (after! doom-themes-ext-treemacs
   (with-eval-after-load 'treemacs
@@ -149,6 +183,17 @@
 ;; -- KEYS --
 (map! :leader "!" #'vterm)
 (map! :leader "jt" #'centaur-tabs-ace-jump)
+(map! :leader "jt" #'centaur-tabs-ace-jump)
+
+(map! :leader
+      (:prefix ("v" . "visual")
+       :desc "Narrow to region" "n" #'fancy-narrow-to-region
+       :desc "Narrow to defun" "d" #'fancy-narrow-to-defun
+       :desc "Widen" "w" #'fancy-widen))
+
+(map! :leader :desc "Error lists" "cx" (lambda () (interactive) (+default/diagnostics '((:not posframe)))))
+(map! :leader "n" #'centaur-tabs-ace-jump)
+
 
 ;; -- RUST --
 (require 'dap-lldb)
@@ -157,21 +202,36 @@
 ;;(setq dap-lldb-debug-program `("/Users/mmeng/.vscode/extensions/vadimcn.vscode-lldb-1.9.0/lldb/bin/lldb"))
 
 (setq lsp-rust-analyzer-debug-lens-extra-dap-args
-        `(:MIMode "lldb"
-                :miDebuggerPath "lldb-mi"
-                :stopAtEntry t
-                :externalConsole
-                :json-false))
+      `(:MIMode "lldb"
+        :miDebuggerPath "lldb-mi"
+        :stopAtEntry t
+        :externalConsole
+        :json-false))
 
 (dap-register-debug-template
-        "Rust::LLDB Run Configuration"
-        (list :type "lldb"
-                :request "launch"
-                :name "LLDB::Run"
-          :gdbpath "rust-lldb"
-          :cwd (lsp-workspace-root)
-        ))
+ "Rust::LLDB Run Configuration"
+ (list :type "lldb"
+       :request "launch"
+       :name "LLDB::Run"
+       :gdbpath "rust-lldb"
+       :cwd (lsp-workspace-root)
+       ))
 
 ;; -- JAVA --
 (setq lsp-java-vmargs
       '("-XX:+UseParallelGC" "-XX:GCTimeRatio=4" "-XX:AdaptiveSizePolicyWeight=90" "-Dsun.zip.disableMemoryMapping=true" "-Xmx4G" "-Xms100m"))
+
+;; -- COPILOT --
+;; accept completion from copilot and fallback to company
+(use-package! copilot
+  :hook (prog-mode . copilot-mode)
+  :bind (:map copilot-completion-map
+              ("<tab>" . 'copilot-accept-completion)
+              ("TAB" . 'copilot-accept-completion)
+              ("C-TAB" . 'copilot-accept-completion-by-word)
+              ("C-<tab>" . 'copilot-accept-completion-by-word)))
+
+;; -- DOCS --
+(set-docsets! 'python-mode "Python 3" "Flask")
+(after! dash-docs
+  (setq dash-docs-browser-func #'+lookup-xwidget-webkit-open-url-fn))
