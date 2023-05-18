@@ -31,10 +31,24 @@
 ;; refresh your font settings. If Emacs still can't find your font, it likely
 ;; wasn't installed correctly. Font issues are rarely Doom issues!
 
-(setq doom-font (font-spec :family "Menlo" :size 14)
-      doom-variable-pitch-font (font-spec :family "MesloLGS NF" :size 13)
-      doom-unicode-font (font-spec :family "MesloLGS NF" :size 13))
-(setq default-text-properties '(line-height 1.4))
+;; (setq doom-font (font-spec :family "Fira Code" :size 14 :weight 'semi-light)
+;;       doom-variable-pitch-font (font-spec :family "MesloLGS NF" :size 14)
+;;       doom-unicode-font (font-spec :family "MesloLGS NF" :size 14))
+
+;; (setq doom-font (font-spec :family "Hack" :size 14)
+;;       doom-variable-pitch-font (font-spec :family "MesloLGS NF" :size 14)
+;;       doom-unicode-font (font-spec :family "MesloLGS NF" :size 14))
+
+;; (setq doom-font (font-spec :family "Menlo" :size 14)
+;;       doom-variable-pitch-font (font-spec :family "MesloLGS NF" :size 14)
+;;       doom-unicode-font (font-spec :family "MesloLGS NF" :size 14))
+
+(setq doom-font (font-spec :family "JetBrains Mono" :size 14 :weight 'semi-light)
+      doom-variable-pitch-font (font-spec :family "MesloLGS NF" :size 14)
+      doom-unicode-font (font-spec :family "MesloLGS NF" :size 14))
+
+;;(setq-default line-spacing 0.25)
+;;(setq default-text-properties '(line-height 1.4))
 
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
@@ -156,6 +170,23 @@
         projectile-ignored-projects '("~/.emacs.d/")
         projectile-project-search-path '("~/projects" "~/playground")))
 
+;; -- Tree Sitter --
+(evil-define-key 'normal 'tree-sitter-mode "[a" (+tree-sitter-goto-textobj "parameter.inner" t))
+(evil-define-key 'normal 'tree-sitter-mode "]a" (+tree-sitter-goto-textobj "parameter.inner"))
+(evil-define-key 'normal 'tree-sitter-mode "[f" (+tree-sitter-goto-textobj "function.outer" t))
+(evil-define-key 'normal 'tree-sitter-mode "]f" (+tree-sitter-goto-textobj "function.outer"))
+(evil-define-key 'normal 'tree-sitter-mode "[F" (+tree-sitter-goto-textobj "call.outer" t))
+(evil-define-key 'normal 'tree-sitter-mode "]F" (+tree-sitter-goto-textobj "call.outer"))
+(evil-define-key 'normal 'tree-sitter-mode "[C" (+tree-sitter-goto-textobj "class.outer" t))
+(evil-define-key 'normal 'tree-sitter-mode "]C" (+tree-sitter-goto-textobj "class.outer"))
+(evil-define-key 'normal 'tree-sitter-mode "[c" (+tree-sitter-goto-textobj "comment.outer" t))
+(evil-define-key 'normal 'tree-sitter-mode "]c" (+tree-sitter-goto-textobj "comment.outer"))
+(evil-define-key 'normal 'tree-sitter-mode "[l" (+tree-sitter-goto-textobj "loop.outer" t))
+(evil-define-key 'normal 'tree-sitter-mode "]l" (+tree-sitter-goto-textobj "loop.outer"))
+(evil-define-key 'normal 'tree-sitter-mode "[i" (+tree-sitter-goto-textobj "conditional.outer" t))
+(evil-define-key 'normal 'tree-sitter-mode "]i" (+tree-sitter-goto-textobj "conditional.outer"))
+
+
 ;; -- LSP --
 (setq lsp-ui-doc-enable t)
 (setq lsp-ui-doc-position 'top)
@@ -183,7 +214,6 @@
 ;; -- KEYS --
 (map! :leader "!" #'vterm)
 (map! :leader "jt" #'centaur-tabs-ace-jump)
-(map! :leader "jt" #'centaur-tabs-ace-jump)
 
 (map! :leader
       (:prefix ("v" . "visual")
@@ -192,7 +222,6 @@
        :desc "Widen" "w" #'fancy-widen))
 
 (map! :leader :desc "Error lists" "cx" (lambda () (interactive) (+default/diagnostics '((:not posframe)))))
-(map! :leader "n" #'centaur-tabs-ace-jump)
 
 
 ;; -- RUST --
@@ -235,3 +264,54 @@
 (set-docsets! 'python-mode "Python 3" "Flask")
 (after! dash-docs
   (setq dash-docs-browser-func #'+lookup-xwidget-webkit-open-url-fn))
+
+;; -- ORG --
+(after! org
+ (setq org-todo-keywords
+      '((sequence "TODO" "IN_PROGRESS" "BLOCKED" "|" "DONE" "CANCELLED")))
+  )
+(after! org-roam
+  :custom
+  (org-roam-complete-everywhere)
+  (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
+  (org-roam-db-autosync-mode)
+  (setq org-roam-capture-templates
+        '(("d" "default" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "${title}\n#+filetags: \n#+date: %U\n")
+           :unnarrowed t)
+          ("l" "programming language" plain
+           "* Overview\n%?\n* Learning Plan\n\n* Links\n\n"
+           :target (file+head "%<%Y%m%d%H%M%S>-lang-${slug}.org" "${title}\n#+filetags: :LANG:\n")
+           :unnarrowed t)
+          ("r" "reading notes" plain
+           "Title: ${title} \nLink: %^{Link}:\nTopics: %?\n* Notes\n\n* Thoughts\n\n"
+           :target (file+head "%<%Y%m%d%H%M%S>-reading-${slug}.org" "${title}\n#+filetags: :READING:\n")
+           :unnarrowed t)
+          ("b" "book notes" plain
+           "Title: %^{title} \n* Summary:\n%?\n* Chapters\n\n* Thoughts\n\n"
+           :target (file+head "%<%Y%m%d%H%M%S>-book-${slug}.org" "${title}\n#+filetags: :BOOK:\n")
+           :unnarrowed t)
+          ("t" "thought" plain
+           "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-thought-${slug}.org" "${title}\n#+filetags: :THOUGHT:\n")
+           :unnarrowed t)
+          ("p" "project tasks" plain
+           "* Goals\n%?\n* Tasks\n** TODO Initial tasks\n\n* Dates\n"
+           :target (file+head "%<%Y%m%d%H%M%S>-thought-${slug}.org" "${title}\n#+filetags: :PROJECT:\n#+date: %U\n")
+           :unnarrowed t)
+          ))
+  )
+(advice-add #'org-roam-fontify-like-in-org-mode :around (lambda (fn &rest args) (save-excursion (apply fn args))))
+(use-package! websocket
+  :after org-roam)
+(use-package! org-roam-ui
+  :after org-roam ;; or :after org
+  ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+  ;;         a hookable mode anymore, you're advised to pick something yourself
+  ;;         if you don't care about startup time, use
+  ;;  :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start t))
